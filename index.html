@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ElGamal Cipher</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg:        #faf7f4;
+      --surface:   #f3ede6;
+      --card:      #ffffff;
+      --border:    #e2d9d0;
+      --border2:   #d4c9be;
+
+      /* pastel palette */
+      --lavender:  #b8a9d4;
+      --lavender-bg: #f0ecf8;
+      --lavender-border: #d6ceed;
+
+      --sage:      #8db89e;
+      --sage-bg:   #eaf3ee;
+      --sage-border: #c3dece;
+
+      --peach:     #d4967a;
+      --peach-bg:  #fdf0ea;
+      --peach-border: #f0c9b8;
+
+      --sky:       #85afc8;
+      --sky-bg:    #e8f2f9;
+      --sky-border: #bcd5e8;
+
+      --rose:      #c98fa0;
+      --rose-bg:   #fceef2;
+      --rose-border: #eac5cf;
+
+      --text:      #3d3530;
+      --text-mid:  #6b5f58;
+      --muted:     #9e8e85;
+
+      --mono:      'DM Mono', monospace;
+      --serif:     'Instrument Serif', serif;
+      --sans:      'DM Sans', sans-serif;
+
+      --radius:    12px;
+      --shadow:    0 2px 16px rgba(100,80,70,.08);
+      --shadow-lg: 0 8px 40px rgba(100,80,70,.12);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 15px;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* soft watercolor blobs */
+    .blob {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(80px);
+      pointer-events: none;
+      z-index: 0;
+      opacity: .55;
+    }
+    .blob-1 { width: 600px; height: 600px; background: #ddd4f0; top: -200px; left: -180px; }
+    .blob-2 { width: 500px; height: 500px; background: #c8e4d8; bottom: -150px; right: -150px; }
+    .blob-3 { width: 300px; height: 300px; background: #f5d4c8; top: 40%; left: 60%; }
+
+    /* dot texture */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: radial-gradient(circle, rgba(100,80,70,.06) 1px, transparent 1px);
+      background-size: 22px 22px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .wrapper {
+      position: relative;
+      z-index: 1;
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 56px 20px 100px;
+    }
+
+    /* ── HEADER ── */
+    header {
+      text-align: center;
+      margin-bottom: 52px;
+      animation: riseUp .7s cubic-bezier(.22,1,.36,1) both;
+    }
+
+    .pill-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--mono);
+      font-size: .7rem;
+      letter-spacing: .08em;
+      color: var(--lavender);
+      background: var(--lavender-bg);
+      border: 1px solid var(--lavender-border);
+      padding: 5px 14px;
+      border-radius: 99px;
+      margin-bottom: 20px;
+    }
+    .pill-tag::before { content: '✦'; font-size: .65rem; }
+
+    h1 {
+      font-family: var(--serif);
+      font-style: italic;
+      font-size: clamp(2.8rem, 7vw, 4.4rem);
+      font-weight: 400;
+      letter-spacing: -.01em;
+      line-height: 1;
+      color: var(--text);
+    }
+    h1 span { color: var(--lavender); }
+
+    .subtitle {
+      margin-top: 14px;
+      font-size: .82rem;
+      color: var(--muted);
+      font-family: var(--mono);
+      letter-spacing: .04em;
+    }
+
+    /* ── CARD ── */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px 32px;
+      margin-bottom: 18px;
+      box-shadow: var(--shadow);
+      animation: riseUp .5s cubic-bezier(.22,1,.36,1) both;
+    }
+    .card:nth-child(1){ animation-delay:.08s }
+    .card:nth-child(2){ animation-delay:.16s }
+    .card:nth-child(3){ animation-delay:.24s }
+
+    .section-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--mono);
+      font-size: .68rem;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 22px;
+    }
+    .section-label .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .dot-lav { background: var(--lavender); }
+    .dot-sage { background: var(--sage); }
+    .dot-peach { background: var(--peach); }
+    .section-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* ── KEY GRID ── */
+    .key-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+      gap: 10px;
+    }
+
+    .key-chip {
+      border-radius: 8px;
+      padding: 10px 12px;
+      border: 1px solid;
+    }
+    .key-chip.public  { background: var(--sky-bg);     border-color: var(--sky-border); }
+    .key-chip.private { background: var(--rose-bg);    border-color: var(--rose-border); }
+    .key-chip.param   { background: var(--lavender-bg); border-color: var(--lavender-border); }
+
+    .chip-label {
+      font-family: var(--mono);
+      font-size: .64rem;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+    }
+    .key-chip.public  .chip-label { color: var(--sky); }
+    .key-chip.private .chip-label { color: var(--rose); }
+    .key-chip.param   .chip-label { color: var(--lavender); }
+
+    .chip-val {
+      font-family: var(--mono);
+      font-size: .73rem;
+      word-break: break-all;
+      line-height: 1.5;
+      color: var(--text-mid);
+    }
+    .chip-val.placeholder { color: var(--muted); font-style: italic; }
+
+    /* ── REGEN BTN ── */
+    .btn-regen {
+      margin-top: 18px;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: var(--lavender-bg);
+      border: 1px solid var(--lavender-border);
+      color: var(--lavender);
+      font-family: var(--mono);
+      font-size: .72rem;
+      letter-spacing: .08em;
+      padding: 8px 18px;
+      border-radius: 99px;
+      cursor: pointer;
+      transition: all .2s;
+    }
+    .btn-regen:hover {
+      background: var(--lavender);
+      color: #fff;
+      border-color: var(--lavender);
+    }
+    .btn-regen:active { transform: scale(.97); }
+    .btn-regen .ico { font-size: .85rem; transition: transform .4s; }
+    .btn-regen:hover .ico { transform: rotate(180deg); }
+
+    /* ── FORM ── */
+    .form-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+    .form-group { flex: 1; min-width: 200px; }
+
+    label {
+      display: block;
+      font-family: var(--mono);
+      font-size: .66rem;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 7px;
+    }
+
+    select, textarea, input[type="number"] {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: .82rem;
+      padding: 11px 14px;
+      border-radius: 8px;
+      outline: none;
+      transition: border-color .2s, box-shadow .2s, background .2s;
+      appearance: none;
+    }
+    select:focus, textarea:focus, input:focus {
+      border-color: var(--lavender);
+      background: #fff;
+      box-shadow: 0 0 0 3px var(--lavender-bg);
+    }
+    select {
+      cursor: pointer;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%23b8a9d4' d='M5 6L0 0h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      padding-right: 36px;
+    }
+    textarea { resize: vertical; min-height: 82px; line-height: 1.5; }
+
+    /* ── PROCESS BTN ── */
+    .btn-process {
+      width: 100%;
+      background: linear-gradient(135deg, #c5b8e0 0%, #a8cbbf 100%);
+      border: none;
+      color: #fff;
+      font-family: var(--sans);
+      font-weight: 600;
+      font-size: .9rem;
+      letter-spacing: .06em;
+      padding: 14px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all .25s;
+      box-shadow: 0 4px 20px rgba(184,169,212,.35);
+      margin-top: 4px;
+    }
+    .btn-process:hover {
+      box-shadow: 0 6px 28px rgba(184,169,212,.5);
+      transform: translateY(-1px);
+    }
+    .btn-process:active { transform: translateY(0); box-shadow: none; }
+    .btn-process:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+
+    /* ── RESULT ── */
+    .result-section { display: none; }
+    .result-section.visible { display: block; animation: riseUp .45s cubic-bezier(.22,1,.36,1) both; }
+
+    .result-inner-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px 18px;
+      margin-bottom: 12px;
+    }
+    .inner-label {
+      font-family: var(--mono);
+      font-size: .64rem;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    .cipher-pair {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+    .cipher-chip {
+      background: var(--sky-bg);
+      border: 1px solid var(--sky-border);
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-family: var(--mono);
+      font-size: .7rem;
+      color: var(--sky);
+      word-break: break-all;
+      line-height: 1.5;
+    }
+    .cipher-chip .val-label {
+      color: var(--muted);
+      font-size: .62rem;
+      display: block;
+      margin-bottom: 3px;
+    }
+
+    .decrypted-box {
+      background: var(--sage-bg);
+      border: 1px solid var(--sage-border);
+      border-radius: 10px;
+      padding: 18px 20px;
+      font-family: var(--mono);
+      font-size: .92rem;
+      color: var(--sage);
+      word-break: break-all;
+      line-height: 1.6;
+    }
+    .decrypted-box .dec-label {
+      font-size: .65rem;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .dec-label::before { content: '✓'; color: var(--sage); font-size: .8rem; }
+
+    .block-list {
+      max-height: 240px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border2) transparent;
+    }
+    .block-list::-webkit-scrollbar { width: 3px; }
+    .block-list::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+    /* ── SPINNER ── */
+    .spinner {
+      display: inline-block;
+      width: 13px; height: 13px;
+      border: 2px solid rgba(255,255,255,.35);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+
+    /* ── ERROR ── */
+    .error-box {
+      background: var(--peach-bg);
+      border: 1px solid var(--peach-border);
+      color: var(--peach);
+      font-family: var(--mono);
+      font-size: .78rem;
+      padding: 11px 14px;
+      border-radius: 8px;
+      display: none;
+      margin-top: 12px;
+      line-height: 1.5;
+    }
+    .error-box.visible { display: block; }
+
+    /* ── ANIMATIONS ── */
+    @keyframes riseUp { from { opacity:0; transform:translateY(18px) } to { opacity:1; transform:none } }
+    @keyframes spin   { to { transform:rotate(360deg) } }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 540px) {
+      .card { padding: 20px 16px; }
+      .cipher-pair { grid-template-columns: 1fr; }
+      .key-grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 380px) {
+      .key-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+  <div class="blob blob-3"></div>
+
+  <div class="wrapper">
+
+    <!-- HEADER -->
+    <header>
+      <div class="pill-tag">Kriptografi Kunci Publik</div>
+      <h1><span>ElGamal</span> Cipher</h1>
+      <p class="subtitle">p = 18446744073709551557 &nbsp;·&nbsp; g = 13 &nbsp;·&nbsp; Logaritma Diskrit</p>
+    </header>
+
+    <!-- CARD 1: KUNCI -->
+    <div class="card">
+      <div class="section-label"><span class="dot dot-lav"></span>Manajemen Kunci</div>
+      <div class="key-grid">
+        <div class="key-chip param">
+          <div class="chip-label">p — Bilangan Prima</div>
+          <div class="chip-val" id="kp">18446744073709551557</div>
+        </div>
+        <div class="key-chip param">
+          <div class="chip-label">g — Generator</div>
+          <div class="chip-val" id="kg">13</div>
+        </div>
+        <div class="key-chip public">
+          <div class="chip-label">y — Kunci Publik</div>
+          <div class="chip-val placeholder" id="ky">belum di-generate…</div>
+        </div>
+        <div class="key-chip private">
+          <div class="chip-label">x — Kunci Privat 🔒</div>
+          <div class="chip-val placeholder" id="kx">rahasia…</div>
+        </div>
+      </div>
+      <button class="btn-regen" id="btnRegen" onclick="generateKeys()">
+        <span class="ico">↻</span> Generate Kunci Baru
+      </button>
+    </div>
+
+    <!-- CARD 2: INPUT -->
+    <div class="card">
+      <div class="section-label"><span class="dot dot-sage"></span>Input Pesan</div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="modeSelect">Mode Enkripsi</label>
+          <select id="modeSelect" onchange="toggleMode()">
+            <option value="number">🔢  Kirim Pesan Angka</option>
+            <option value="text">🔤  Kirim Pesan Teks</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="inputNumber" class="form-row">
+        <div class="form-group">
+          <label for="msgNumber">Pesan Angka (maks. p − 1)</label>
+          <input type="number" id="msgNumber" placeholder="Contoh: 1234567890" min="0" />
+        </div>
+      </div>
+
+      <div id="inputText" class="form-row" style="display:none">
+        <div class="form-group">
+          <label for="msgText">Pesan Teks</label>
+          <textarea id="msgText" placeholder="Ketik pesan teks di sini…"></textarea>
+        </div>
+      </div>
+
+      <div class="error-box" id="errBox"></div>
+
+      <button class="btn-process" id="btnProcess" onclick="processEncryption()">
+        ✦ &nbsp;Proses Enkripsi &amp; Dekripsi
+      </button>
+    </div>
+
+    <!-- CARD 3: HASIL -->
+    <div class="card result-section" id="resultCard">
+      <div class="section-label"><span class="dot dot-peach"></span>Hasil</div>
+
+      <!-- ANGKA -->
+      <div id="resultNumber" style="display:none">
+        <div class="result-inner-block">
+          <div class="inner-label">Ciphertext</div>
+          <div class="cipher-pair">
+            <div class="cipher-chip">
+              <span class="val-label">c₁</span>
+              <span id="rc1">—</span>
+            </div>
+            <div class="cipher-chip">
+              <span class="val-label">c₂</span>
+              <span id="rc2">—</span>
+            </div>
+          </div>
+        </div>
+        <div class="decrypted-box">
+          <div class="dec-label">Pesan Terdekripsi</div>
+          <div id="rdec">—</div>
+        </div>
+      </div>
+
+      <!-- TEKS -->
+      <div id="resultText" style="display:none">
+        <div class="result-inner-block">
+          <div class="inner-label">Ciphertext per Blok</div>
+          <div class="block-list" id="blockList"></div>
+        </div>
+        <div class="decrypted-box">
+          <div class="dec-label">Pesan Terdekripsi</div>
+          <div id="rdecText">—</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    let currentKeys = null;
+
+    window.addEventListener('DOMContentLoaded', generateKeys);
+
+    function toggleMode() {
+      const mode = document.getElementById('modeSelect').value;
+      document.getElementById('inputNumber').style.display = mode === 'number' ? 'flex' : 'none';
+      document.getElementById('inputText').style.display  = mode === 'text'   ? 'flex' : 'none';
+      hideResult(); clearError();
+    }
+
+    function hideResult() { document.getElementById('resultCard').classList.remove('visible'); }
+    function showError(msg) {
+      const el = document.getElementById('errBox');
+      el.textContent = '⚠  ' + msg;
+      el.classList.add('visible');
+    }
+    function clearError() { document.getElementById('errBox').classList.remove('visible'); }
+
+    async function generateKeys() {
+      const btn = document.getElementById('btnRegen');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span>Generating…';
+
+      ['ky','kx'].forEach(id => {
+        const el = document.getElementById(id);
+        el.textContent = '…';
+        el.classList.add('placeholder');
+      });
+
+      try {
+        const res  = await fetch('/generate-keys');
+        const data = await res.json();
+        currentKeys = data;
+        setKey('ky', data.y);
+        setKey('kx', data.x);
+      } catch (e) {
+        showError('Gagal generate kunci. Pastikan server Flask berjalan.');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<span class="ico">↻</span> Generate Kunci Baru';
+      }
+    }
+
+    function setKey(id, val) {
+      const el = document.getElementById(id);
+      el.textContent = val;
+      el.classList.remove('placeholder');
+    }
+
+    async function processEncryption() {
+      clearError(); hideResult();
+      if (!currentKeys) { showError('Generate kunci terlebih dahulu.'); return; }
+
+      const mode = document.getElementById('modeSelect').value;
+      const btn  = document.getElementById('btnProcess');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span>Memproses…';
+
+      try {
+        mode === 'number' ? await processNumber() : await processText();
+      } catch (e) {
+        showError('Terjadi kesalahan: ' + e.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '✦ &nbsp;Proses Enkripsi &amp; Dekripsi';
+      }
+    }
+
+    async function processNumber() {
+      const msgVal = document.getElementById('msgNumber').value.trim();
+      if (!msgVal) { showError('Masukkan pesan angka.'); return; }
+
+      const res  = await fetch('/encrypt-number', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: msgVal, private_key: currentKeys.x, public_key_y: currentKeys.y })
+      });
+      const data = await res.json();
+      if (data.error) { showError(data.error); return; }
+
+      document.getElementById('rc1').textContent  = data.c1;
+      document.getElementById('rc2').textContent  = data.c2;
+      document.getElementById('rdec').textContent = data.decrypted;
+
+      document.getElementById('resultNumber').style.display = 'block';
+      document.getElementById('resultText').style.display   = 'none';
+      document.getElementById('resultCard').classList.add('visible');
+    }
+
+    async function processText() {
+      const msgVal = document.getElementById('msgText').value.trim();
+      if (!msgVal) { showError('Masukkan pesan teks.'); return; }
+
+      const res  = await fetch('/encrypt-text', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: msgVal, private_key: currentKeys.x, public_key_y: currentKeys.y })
+      });
+      const data = await res.json();
+      if (data.error) { showError(data.error); return; }
+
+      const list = document.getElementById('blockList');
+      list.innerHTML = '';
+      data.blocks.forEach((blk, i) => {
+        const row = document.createElement('div');
+        row.className = 'cipher-pair';
+        row.style.marginBottom = '7px';
+        row.innerHTML = `
+          <div class="cipher-chip"><span class="val-label">Blok ${i+1} — c₁</span>${blk.c1}</div>
+          <div class="cipher-chip"><span class="val-label">Blok ${i+1} — c₂</span>${blk.c2}</div>`;
+        list.appendChild(row);
+      });
+
+      document.getElementById('rdecText').textContent = data.decrypted;
+      document.getElementById('resultNumber').style.display = 'none';
+      document.getElementById('resultText').style.display   = 'block';
+      document.getElementById('resultCard').classList.add('visible');
+    }
+  </script>
+</body>
+</html>
