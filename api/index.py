@@ -1,8 +1,9 @@
+import os
 from flask import Flask, render_template, request, jsonify
 import random
-import os
 
-app = Flask(__name__)
+base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+app = Flask(__name__, template_folder=os.path.join(base_dir, '../templates'))
 
 # ==========================================
 # LOGIKA MATEMATIKA ELGAMAL (100% Original)
@@ -131,8 +132,4 @@ def encrypt_text():
     })
 
 
-if __name__ == '__main__':
-    # Membaca port sistem dari cloud, jika tidak ada gunakan 5000
-    port = int(os.environ.get("PORT", 5000))
-    # Matikan debug=True untuk keamanan di produksi
-    app.run(host='0.0.0.0', port=port)
+app = app
