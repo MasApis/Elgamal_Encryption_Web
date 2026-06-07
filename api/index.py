@@ -2,8 +2,10 @@ import os
 from flask import Flask, render_template, request, jsonify
 import random
 
-base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-app = Flask(__name__, template_folder=os.path.join(base_dir, '../templates'))
+current_dir = os.path.dirname(os.path.abspath(__file__))
+root_dir = os.path.dirname(current_dir)
+template_dir = os.path.join(root_dir, 'templates')
+app = Flask(__name__, template_folder=template_dir)
 
 # ==========================================
 # LOGIKA MATEMATIKA ELGAMAL (100% Original)
