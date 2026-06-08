@@ -8,7 +8,7 @@ template_dir = os.path.join(root_dir, 'templates')
 app = Flask(__name__, template_folder=template_dir)
 
 # ==========================================
-# LOGIKA MATEMATIKA ELGAMAL (100% Original)
+# LOGIKA MATEMATIKA ELGAMAL
 # ==========================================
 
 def gcd(a, b):
